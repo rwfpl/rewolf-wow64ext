@@ -1,0 +1,93 @@
+#include <Windows.h>
+#include <cstdio>
+#include <winternl.h>
+#include "../src/wow64ext.h"
+
+#define FNFAIL(a) printf(a " failed\n")
+
+int main (int argc, char* argv[])
+{
+	if (2 != argc)
+	{
+		printf("Usage:\n\t%s hex_process_ID\n", argv[0]);
+		return 0;
+	}
+
+	DWORD procID = 0;
+	if (1 != sscanf_s(argv[1], "%X", &procID))
+	{
+		printf("Invalid process ID.\n");
+		return 0;
+	}
+
+	printf("Process ID: %08X\n", procID);
+	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
+	if (0 == hProcess)
+	{
+		printf("Can't open process %08X.\n", procID);
+		return 0;
+	}
+
+	MEMORY_BASIC_INFORMATION64 mbi64 = { 0 };
+	DWORD64 crAddr = 0;
+	bool printMemMap = true;
+	while (VirtualQueryEx64(hProcess, crAddr, &mbi64, sizeof(mbi64)))
+	{
+		if (mbi64.Protect && !(mbi64.Protect & (PAGE_NOACCESS | PAGE_GUARD)))
+		{
+			if (printMemMap)
+				printf("[D] : ");
+
+			BYTE* mem = (BYTE*)VirtualAlloc(0, (SIZE_T)mbi64.RegionSize, MEM_COMMIT, PAGE_READWRITE);
+			if (mem == 0)
+			{
+				FNFAIL("VirtualAlloc");
+				crAddr = crAddr + mbi64.RegionSize;
+				continue;
+			}
+			if (0 == ReadProcessMemory64(hProcess, mbi64.BaseAddress, mem, (SIZE_T)mbi64.RegionSize, 0))
+			{
+				if (printMemMap)
+					printf("%016I64X : %016I64X : %08X : ", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect);
+				FNFAIL("ReadProcessMemory");
+				VirtualFree(mem, 0, MEM_RELEASE);
+				crAddr = crAddr + mbi64.RegionSize;
+				continue;
+			}
+
+ 			wchar_t fName[0x200];
+ 			swprintf_s(fName, L"%08X_%016I64X.bin", procID, mbi64.BaseAddress);
+ 			HANDLE hFile = CreateFile(fName, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+ 			DWORD tmp = 0;
+ 			WriteFile(hFile, mem, (DWORD)mbi64.RegionSize, &tmp, 0);
+ 			CloseHandle(hFile);
+
+			VirtualFree(mem, 0, MEM_RELEASE);
+		}
+		else
+		{
+			if (printMemMap)
+				printf("[ ] : ");
+		}
+
+		if (printMemMap)
+			printf("%016I64X : %016I64X : %08X\n", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect);
+		crAddr = crAddr + mbi64.RegionSize;
+	}
+
+	DWORD ntdll64 = GetModuleHandle64(L"ntdll.dll");
+	printf("NTDLL64: %08X\n", ntdll64);
+
+	DWORD rtlcrc32 = GetProcAddress64(ntdll64, "RtlComputeCrc32");
+	printf("RtlComputeCrc32 address: %08X\n", rtlcrc32);
+
+	if (0 != rtlcrc32)
+	{
+
+		DWORD64 ret = X64Call(rtlcrc32, 3, (DWORD64)0, (DWORD64)"ReWolf", (DWORD64)6);
+		printf("CRC32(\"ReWolf\") = %016I64X\n", ret);
+	}
+
+	CloseHandle(hProcess);
+	return 0;
+}

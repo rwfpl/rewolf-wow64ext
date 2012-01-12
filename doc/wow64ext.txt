@@ -1,0 +1,104 @@
+--------------------------------------------------------------------------------
+Name....: WOW64Ext Library
+Author..: ReWolf
+Rel.Date: 12.I.2012
+
+
+e.mail..: rewolf@rewolf.pl
+www.....: http://blog.rewolf.pl
+--------------------------------------------------------------------------------
+
+WOW64Ext is a helper  library for x86  programs that  runs under  WOW64 layer on
+x64 versions of Microsoft Windows operating systems. It enables x86 applications
+to read, write  and enumerate memory of a native x64 applications. There is also
+possibility  to call  any x64  function from  64-bits version  of NTDLL  through
+a special function called X64Call(). As a bonus, wow64ext.h contains definitions
+of some  structures that might  be useful for programs  that want to access PEB,
+TEB, TIB etc.
+
+Sample application that uses this library can be found in \sample\ directory, it
+is simple memory dumper.
+
+--------------------------------------------------------------------------------
+
+Functions:
+
+--------------------------------------------------------------------------------
+
+DWORD64 X64Call(DWORD func, int argC, ...);
+
+Low level function that can call any x64 API from NTDLL.
+
+func - address of x64 function, can be obtained by GetProcAddress64()
+argC - number of arguments that will be passed to the 'func'
+...  - rest of arguments for 'func', all values should be casted to DWORD64
+
+--------------------------------------------------------------------------------
+
+DWORD GetModuleHandle64(wchar_t* lpModuleName);
+
+Behaviour similar to x86 version of GetModuleHandle, but it looks for the module
+name  in the list  of loaded x64  libraries.  Usually x86  processes under WOW64
+layer   have   four  x64  libraries:  ntdll.dll,   wow64.dll,  wow64cpu.dll  and
+wow64win.dll
+
+lpModuleName - unicode string that represents module name
+
+--------------------------------------------------------------------------------
+
+DWORD GetProcAddress64(DWORD hModule, char* funcName);
+
+Behaviour  similar  to  x86 version  of GetProcAddress,  internally it  uses x64
+version of LdrGetProcedureAddress() from NTDLL.
+
+hModule  - base of x64 module
+funcName - function name
+
+--------------------------------------------------------------------------------
+
+SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD64 lpAddress, 
+                        MEMORY_BASIC_INFORMATION64* lpBuffer, SIZE_T dwLength);
+
+Behaviour  similar to  x86 version of  VirtualQueryEx,  internally  it uses  x64
+version of NtQueryVirtualMemory() from NTDLL.
+
+hProcess  - handle of the process, can  be  obtained by  standard x86 version of
+            OpenProcess() function
+lpAddress - base address of the region of pages to be queried
+lpBuffer  - a pointer to a MEMORY_BASIC_INFORMATION64  structure, it  is defined
+            in the standard SDK headers
+dwLength  - size of the buffer pointed to by the lpBuffer parameter
+
+--------------------------------------------------------------------------------
+
+BOOL ReadProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, 
+                         LPVOID lpBuffer, SIZE_T nSize, 
+                         SIZE_T *lpNumberOfBytesRead);
+
+Behaviour  similar to  x86 version of  ReadProcessMemory, internally it uses x64
+version of NtReadVirtualMemory() from NTDLL.
+
+hProcess            - handle of  the process,  can be  obtained by  standard x86
+                      version of OpenProcess() function
+lpBaseAddress       - base address of the region that will be read
+lpBuffer            - output memory buffer for the read data
+nSize               - number of bytes to be read
+lpNumberOfBytesRead - pointer to a variable that receives number of read bytes
+
+--------------------------------------------------------------------------------
+
+BOOL WriteProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, 
+                          LPVOID lpBuffer, SIZE_T nSize, 
+                          SIZE_T *lpNumberOfBytesWritten);
+
+Behaviour  similar to  x86 version of WriteProcessMemory, internally it uses x64
+version of NtWriteVirtualMemory() from NTDLL.
+
+hProcess            - handle of  the process,  can be  obtained by  standard x86
+                      version of OpenProcess() function
+lpBaseAddress       - base address of the region that will be written
+lpBuffer            - input memory buffer with the data to write
+nSize               - number of bytes that will be written
+lpNumberOfBytesRead - pointer to variable that receives number of written bytes
+
+--------------------------------------------------------------------------------
