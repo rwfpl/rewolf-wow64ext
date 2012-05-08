@@ -57,7 +57,7 @@ funcName - function name
 --------------------------------------------------------------------------------
 
 SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD64 lpAddress, 
-                        MEMORY_BASIC_INFORMATION64* lpBuffer, SIZE_T dwLength);
+                        MEMORY_BASIC_INFORMATION64* lpBuffer, SIZE_T dwLength)
 
 Behaviour  similar to  x86 version of  VirtualQueryEx,  internally  it uses  x64
 version of NtQueryVirtualMemory() from NTDLL.
@@ -68,6 +68,35 @@ lpAddress - base address of the region of pages to be queried
 lpBuffer  - a pointer to a MEMORY_BASIC_INFORMATION64  structure, it  is defined
             in the standard SDK headers
 dwLength  - size of the buffer pointed to by the lpBuffer parameter
+
+--------------------------------------------------------------------------------
+
+DWORD64 VirtualAllocEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize,
+                         DWORD flAllocationType, DWORD flProtect)
+
+Behaviour  similar to  x86 version of VirtualAllocEx64, internally  it uses  x64
+version of NtAllocateVirtualMemory() from NTDLL.
+
+hProcess         - handle  of  the  process,  can  be  obtained  by standard x86
+                   version of OpenProcess() function
+lpAddress        - desired base address of the region that will be allocated
+dwSize           - size of the region that will be allocated
+flAllocationType - type of memory allocation
+flProtect        - memory protection for the region
+
+--------------------------------------------------------------------------------
+
+BOOL VirtualFreeEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize,
+                     DWORD dwFreeType)
+
+Behaviour  similar to  x86 version of  VirtualFreeEx64, internally  it uses  x64
+version of NtFreeVirtualMemory() from NTDLL.
+
+hProcess   - handle of the process, can be  obtained by  standard x86 version of
+             OpenProcess() function
+lpAddress  - base address of the memory region to free
+dwSize     - size (in bytes) of the memory region to free
+dwFreeType - type of free operation (MEM_RELEASE, MEM_DECOMMIT)
 
 --------------------------------------------------------------------------------
 

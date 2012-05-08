@@ -215,6 +215,44 @@ extern "C" __declspec(dllexport) SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD6
 	return (SIZE_T)ret;
 }
 
+extern "C" __declspec(dllexport) DWORD64 VirtualAllocEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
+{
+	static DWORD ntavm = 0;
+	if (0 == ntavm)
+	{
+		ntavm = (DWORD)GetProcAddress64(getNTDLL64(), "NtAllocateVirtualMemory");
+		if (0 == ntavm)
+			return 0;
+	}
+
+	DWORD64 tmpAddr = lpAddress;
+	DWORD64 tmpSize = dwSize;
+	DWORD64 ret = X64Call(ntavm, 6, (DWORD64)hProcess, (DWORD64)&tmpAddr, (DWORD64)0, (DWORD64)&tmpSize, (DWORD64)flAllocationType, (DWORD64)flProtect);
+	if (STATUS_SUCCESS != ret)
+		return 0;
+	else
+		return tmpAddr;
+}
+
+__declspec(dllexport) BOOL VirtualFreeEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, DWORD dwFreeType)
+{
+	static DWORD ntfvm = 0;
+	if (0 == ntfvm)
+	{
+		ntfvm = (DWORD)GetProcAddress64(getNTDLL64(), "NtFreeVirtualMemory");
+		if (0 == ntfvm)
+			return 0;
+	}
+
+	DWORD64 tmpAddr = lpAddress;
+	DWORD64 tmpSize = dwSize;
+	DWORD64 ret = X64Call(ntfvm, 4, (DWORD64)hProcess, (DWORD64)&tmpAddr, (DWORD64)&tmpSize, (DWORD64)dwFreeType);
+	if (STATUS_SUCCESS != ret)
+		return FALSE;
+	else
+		return TRUE;
+}
+
 extern "C" __declspec(dllexport) BOOL ReadProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesRead)
 {
 	static DWORD nrvm = 0;

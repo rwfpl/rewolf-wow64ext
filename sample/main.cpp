@@ -83,10 +83,25 @@ int main (int argc, char* argv[])
 
 	if (0 != rtlcrc32)
 	{
-
 		DWORD64 ret = X64Call(rtlcrc32, 3, (DWORD64)0, (DWORD64)"ReWolf", (DWORD64)6);
 		printf("CRC32(\"ReWolf\") = %016I64X\n", ret);
 	}
+
+	printf("Alloc/Free test:\nRequesting 0x1000 bytes of memory at 0x70000020000 ...\n");
+	DWORD64 mem = VirtualAllocEx64(hProcess, 0x70000020000, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (0 == mem)
+	{
+		printf("VirtualAllocEx64 failed.\n");
+		CloseHandle(hProcess);
+		return 0;
+	}
+	printf("Memory allocated at: %016I64X\n", mem);
+
+	VirtualQueryEx64(hProcess, mem, &mbi64, sizeof(mbi64));
+	printf("Query memory: %016I64X %016I64X %08X %08X %08X\n", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect, mbi64.Type, mbi64.State);
+	printf("Freeing memory: %s\n", VirtualFreeEx64(hProcess, mem, 0, MEM_RELEASE) ? "success" : "failure");
+	VirtualQueryEx64(hProcess, mem, &mbi64, sizeof(mbi64));
+	printf("Query memory: %016I64X %016I64X %08X %08X %08X\n", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect, mbi64.Type, mbi64.State);
 
 	CloseHandle(hProcess);
 	return 0;
