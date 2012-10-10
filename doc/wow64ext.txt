@@ -49,7 +49,7 @@ lpModuleName - unicode string that represents module name
 
 DWORD GetProcAddress64(DWORD hModule, char* funcName);
 
-Behaviour  similar  to  x86 version  of GetProcAddress,  internally it  uses x64
+Behaviour  similar  to  x86 version of GetProcAddress(), internally it  uses x64
 version of LdrGetProcedureAddress() from NTDLL.
 
 hModule  - base of x64 module
@@ -60,7 +60,7 @@ funcName - function name
 SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD64 lpAddress, 
                         MEMORY_BASIC_INFORMATION64* lpBuffer, SIZE_T dwLength)
 
-Behaviour  similar to  x86 version of  VirtualQueryEx,  internally  it uses  x64
+Behaviour  similar to  x86 version of  VirtualQueryEx(), internally it uses  x64
 version of NtQueryVirtualMemory() from NTDLL.
 
 hProcess  - handle of the process, can  be  obtained by  standard x86 version of
@@ -75,7 +75,7 @@ dwLength  - size of the buffer pointed to by the lpBuffer parameter
 DWORD64 VirtualAllocEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize,
                          DWORD flAllocationType, DWORD flProtect)
 
-Behaviour  similar to  x86 version of VirtualAllocEx64, internally  it uses  x64
+Behaviour  similar to  x86 version of VirtualAllocEx64(), internally it uses x64
 version of NtAllocateVirtualMemory() from NTDLL.
 
 hProcess         - handle  of  the  process,  can  be  obtained  by standard x86
@@ -90,7 +90,7 @@ flProtect        - memory protection for the region
 BOOL VirtualFreeEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize,
                      DWORD dwFreeType)
 
-Behaviour  similar to  x86 version of  VirtualFreeEx64, internally  it uses  x64
+Behaviour  similar to  x86 version of  VirtualFreeEx64(), internally it uses x64
 version of NtFreeVirtualMemory() from NTDLL.
 
 hProcess   - handle of the process, can be  obtained by  standard x86 version of
@@ -105,7 +105,7 @@ BOOL ReadProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress,
                          LPVOID lpBuffer, SIZE_T nSize, 
                          SIZE_T *lpNumberOfBytesRead);
 
-Behaviour  similar to  x86 version of  ReadProcessMemory, internally it uses x64
+Behaviour similar to x86 version of  ReadProcessMemory(), internally it uses x64
 version of NtReadVirtualMemory() from NTDLL.
 
 hProcess            - handle of  the process,  can be  obtained by  standard x86
@@ -121,7 +121,7 @@ BOOL WriteProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress,
                           LPVOID lpBuffer, SIZE_T nSize, 
                           SIZE_T *lpNumberOfBytesWritten);
 
-Behaviour  similar to  x86 version of WriteProcessMemory, internally it uses x64
+Behaviour similar to x86 version of WriteProcessMemory(), internally it uses x64
 version of NtWriteVirtualMemory() from NTDLL.
 
 hProcess            - handle of  the process,  can be  obtained by  standard x86
@@ -135,7 +135,7 @@ lpNumberOfBytesRead - pointer to variable that receives number of written bytes
 
 BOOL GetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext);
 
-Behaviour  similar to  x86 version  of GetThreadContext, internally  it uses x64
+Behaviour similar to  x86 version of GetThreadContext(), internally  it uses x64
 version  of  NtGetContextThread()  from NTDLL.  Definition  of _CONTEXT64 can be
 found in wow64ext.h file.
 
@@ -143,13 +143,13 @@ hProcess            - handle of  the process,  can be  obtained by  standard x86
                       version of OpenProcess() function
 lpContext           - A pointer to  a _CONTEXT64  structure  that  will  receive
                       context data  from  specified  thread. Structure  will  be
-					  filled according to ContextFlags field.
+                      filled according to ContextFlags field.
 
 --------------------------------------------------------------------------------
 
 BOOL SetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext);
 
-Behaviour  similar to  x86 version  of SetThreadContext, internally  it uses x64
+Behaviour  similar to x86 version of SetThreadContext(), internally  it uses x64
 version  of  NtSetContextThread()  from NTDLL.  Definition  of _CONTEXT64 can be
 found in wow64ext.h file.
 
@@ -157,6 +157,6 @@ hProcess            - handle of  the process,  can be  obtained by  standard x86
                       version of OpenProcess() function
 lpContext           - A pointer to  a _CONTEXT64  structure  that  will be  used
                       to  fill context  data in specified thread. Structure will
-					  use only fields defined by ContextFlags.
+                      use only fields defined by ContextFlags.
 
 --------------------------------------------------------------------------------
