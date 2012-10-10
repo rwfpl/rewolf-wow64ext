@@ -2,6 +2,7 @@
 Name....: WOW64Ext Library
 Author..: ReWolf
 Rel.Date: 12.I.2012
+Update..: 10.X.2012
 
 
 e.mail..: rewolf@rewolf.pl
@@ -129,5 +130,33 @@ lpBaseAddress       - base address of the region that will be written
 lpBuffer            - input memory buffer with the data to write
 nSize               - number of bytes that will be written
 lpNumberOfBytesRead - pointer to variable that receives number of written bytes
+
+--------------------------------------------------------------------------------
+
+BOOL GetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext);
+
+Behaviour  similar to  x86 version  of GetThreadContext, internally  it uses x64
+version  of  NtGetContextThread()  from NTDLL.  Definition  of _CONTEXT64 can be
+found in wow64ext.h file.
+
+hProcess            - handle of  the process,  can be  obtained by  standard x86
+                      version of OpenProcess() function
+lpContext           - A pointer to  a _CONTEXT64  structure  that  will  receive
+                      context data  from  specified  thread. Structure  will  be
+					  filled according to ContextFlags field.
+
+--------------------------------------------------------------------------------
+
+BOOL SetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext);
+
+Behaviour  similar to  x86 version  of SetThreadContext, internally  it uses x64
+version  of  NtSetContextThread()  from NTDLL.  Definition  of _CONTEXT64 can be
+found in wow64ext.h file.
+
+hProcess            - handle of  the process,  can be  obtained by  standard x86
+                      version of OpenProcess() function
+lpContext           - A pointer to  a _CONTEXT64  structure  that  will be  used
+                      to  fill context  data in specified thread. Structure will
+					  use only fields defined by ContextFlags.
 
 --------------------------------------------------------------------------------

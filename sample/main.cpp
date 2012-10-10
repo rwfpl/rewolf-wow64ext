@@ -103,6 +103,23 @@ int main (int argc, char* argv[])
 	VirtualQueryEx64(hProcess, mem, &mbi64, sizeof(mbi64));
 	printf("Query memory: %016I64X %016I64X %08X %08X %08X\n", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect, mbi64.Type, mbi64.State);
 
+
+	printf("\n\nGet/Set Context test:\n");
+
+	_CONTEXT64 ctx = { 0 };
+	ctx.ContextFlags = CONTEXT64_ALL;
+	GetThreadContext64(GetCurrentThread(), &ctx);
+
+	printf("rsp: %016I64X\n", ctx.Rsp);
+	printf("rip: %016I64X\n", ctx.Rip);
+	printf("r8 : %016I64X\n", ctx.R8);
+	printf("r9 : %016I64X\n", ctx.R9);
+	printf("r12: %016I64X\n", ctx.R12);
+
+	//below code will crash application, it is sufficient prove that SetThreadContext64 is working fine :)
+	//ctx.Rip = 0;
+	//SetThreadContext64(GetCurrentThread(), &ctx);
+
 	CloseHandle(hProcess);
 	return 0;
 }
