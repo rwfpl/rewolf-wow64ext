@@ -365,6 +365,6 @@ extern "C"
 	__declspec(SPEC) BOOL VirtualFreeEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, DWORD dwFreeType);
 	__declspec(SPEC) BOOL ReadProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesRead);
 	__declspec(SPEC) BOOL WriteProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten);
-	__declspec(SPEC) BOOL GetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext);
-	__declspec(SPEC) BOOL SetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext);
+	__declspec(SPEC) BOOL GetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext);
+	__declspec(SPEC) BOOL SetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext);
 }

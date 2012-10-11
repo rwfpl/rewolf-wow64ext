@@ -285,7 +285,7 @@ extern "C" __declspec(dllexport) BOOL WriteProcessMemory64(HANDLE hProcess, DWOR
 		return TRUE;
 }
 
-extern "C" __declspec(dllexport) BOOL GetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext)
+extern "C" __declspec(dllexport) BOOL GetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext)
 {
 	static DWORD gtc = 0;
 	if (0 == gtc)
@@ -294,14 +294,14 @@ extern "C" __declspec(dllexport) BOOL GetThreadContext64(HANDLE hProcess, _CONTE
 		if (0 == gtc)
 			return 0;
 	}
-	DWORD64 ret = X64Call(gtc, 2, (DWORD64)hProcess, (DWORD64)lpContext);
+	DWORD64 ret = X64Call(gtc, 2, (DWORD64)hThread, (DWORD64)lpContext);
 	if (STATUS_SUCCESS != ret)
 		return FALSE;
 	else
 		return TRUE;
 }
 
-extern "C" __declspec(dllexport) BOOL SetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext)
+extern "C" __declspec(dllexport) BOOL SetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext)
 {
 	static DWORD stc = 0;
 	if (0 == stc)
@@ -310,7 +310,7 @@ extern "C" __declspec(dllexport) BOOL SetThreadContext64(HANDLE hProcess, _CONTE
 		if (0 == stc)
 			return 0;
 	}
-	DWORD64 ret = X64Call(stc, 2, (DWORD64)hProcess, (DWORD64)lpContext);
+	DWORD64 ret = X64Call(stc, 2, (DWORD64)hThread, (DWORD64)lpContext);
 	if (STATUS_SUCCESS != ret)
 		return FALSE;
 	else

@@ -133,13 +133,13 @@ lpNumberOfBytesRead - pointer to variable that receives number of written bytes
 
 --------------------------------------------------------------------------------
 
-BOOL GetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext);
+BOOL GetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext);
 
 Behaviour similar to  x86 version of GetThreadContext(), internally  it uses x64
 version  of  NtGetContextThread()  from NTDLL.  Definition  of _CONTEXT64 can be
 found in wow64ext.h file.
 
-hProcess            - handle of  the process,  can be  obtained by  standard x86
+hThread             - handle of  the process,  can be  obtained by  standard x86
                       version of OpenProcess() function
 lpContext           - A pointer to  a _CONTEXT64  structure  that  will  receive
                       context data  from  specified  thread. Structure  will  be
@@ -147,13 +147,13 @@ lpContext           - A pointer to  a _CONTEXT64  structure  that  will  receive
 
 --------------------------------------------------------------------------------
 
-BOOL SetThreadContext64(HANDLE hProcess, _CONTEXT64* lpContext);
+BOOL SetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext);
 
 Behaviour  similar to x86 version of SetThreadContext(), internally  it uses x64
 version  of  NtSetContextThread()  from NTDLL.  Definition  of _CONTEXT64 can be
 found in wow64ext.h file.
 
-hProcess            - handle of  the process,  can be  obtained by  standard x86
+hThread             - handle of  the process,  can be  obtained by  standard x86
                       version of OpenProcess() function
 lpContext           - A pointer to  a _CONTEXT64  structure  that  will be  used
                       to  fill context  data in specified thread. Structure will
