@@ -26,7 +26,7 @@ Functions:
 
 --------------------------------------------------------------------------------
 
-DWORD64 X64Call(DWORD func, int argC, ...);
+DWORD64 X64Call(DWORD64 func, int argC, ...);
 
 Low level function that can call any x64 API from NTDLL.
 
@@ -36,7 +36,7 @@ argC - number of arguments that will be passed to the 'func'
 
 --------------------------------------------------------------------------------
 
-DWORD GetModuleHandle64(wchar_t* lpModuleName);
+DWORD64 GetModuleHandle64(wchar_t* lpModuleName);
 
 Behaviour similar to x86 version of GetModuleHandle, but it looks for the module
 name  in the list  of loaded x64  libraries.  Usually x86  processes under WOW64
@@ -47,7 +47,7 @@ lpModuleName - unicode string that represents module name
 
 --------------------------------------------------------------------------------
 
-DWORD GetProcAddress64(DWORD hModule, char* funcName);
+DWORD64 GetProcAddress64(DWORD64 hModule, char* funcName);
 
 Behaviour  similar  to  x86 version of GetProcAddress(), internally it  uses x64
 version of LdrGetProcedureAddress() from NTDLL.

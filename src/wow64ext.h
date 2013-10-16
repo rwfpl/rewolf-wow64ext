@@ -357,9 +357,9 @@ struct _CONTEXT64
 
 extern "C"
 {
-	__declspec(SPEC) DWORD64 X64Call(DWORD func, int argC, ...);
-	__declspec(SPEC) DWORD GetModuleHandle64(wchar_t* lpModuleName);
-	__declspec(SPEC) DWORD GetProcAddress64(DWORD hModule, char* funcName);
+	__declspec(SPEC) DWORD64 X64Call(DWORD64 func, int argC, ...);
+	__declspec(SPEC) DWORD64 GetModuleHandle64(wchar_t* lpModuleName);
+	__declspec(SPEC) DWORD64 GetProcAddress64(DWORD64 hModule, char* funcName);
 	__declspec(SPEC) SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD64 lpAddress, MEMORY_BASIC_INFORMATION64* lpBuffer, SIZE_T dwLength);
 	__declspec(SPEC) DWORD64 VirtualAllocEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	__declspec(SPEC) BOOL VirtualFreeEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, DWORD dwFreeType);

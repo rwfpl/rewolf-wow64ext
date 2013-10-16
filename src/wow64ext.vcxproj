@@ -79,6 +79,7 @@
     <ClCompile Include="wow64ext.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CMemPtr.h" />
     <ClInclude Include="internal.h" />
     <ClInclude Include="wow64ext.h" />
   </ItemGroup>

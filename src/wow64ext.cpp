@@ -23,13 +23,16 @@
 #include <Windows.h>
 #include "internal.h"
 #include "wow64ext.h"
+#include "CMemPtr.h"
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	return TRUE;
 }
 
-extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD func, int argC, ...)
+#pragma warning(push)
+#pragma warning(disable : 4409)
+extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD64 func, int argC, ...)
 {
 	va_list args;
 	va_start(args, argC);
@@ -42,23 +45,24 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD func, int argC, ...)
 
 	DWORD64 restArgs = (DWORD64)&va_arg(args, DWORD64);
 	
-	//conversion to QWORD for easier use in inline assembly
+	// conversion to QWORD for easier use in inline assembly
 	DWORD64 _argC = argC;
-	DWORD64 _func = func;
 
 	DWORD back_esp = 0;
 
 	__asm
 	{
-		;//keep original esp in back_esp variable
+		;// keep original esp in back_esp variable
 		mov    back_esp, esp
 		
-		;//align esp to 8, without aligned stack some syscalls may return errors !
+		;// align esp to 8, without aligned stack some syscalls may return errors !
 		and    esp, 0xFFFFFFF8
 
 		X64_Start();
+		;// below inline assembly abuses x86 inline asm compiler to generate x64 code,
+		;// it can be done because of x86/x64 assembly similarity
 
-		;//fill first four arguments
+		;// fill first four arguments
 		push   _rcx
 		X64_Pop(_RCX);
 		push   _rdx
@@ -68,7 +72,7 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD func, int argC, ...)
 		push   _r9
 		X64_Pop(_R9);
 	
-		push   edi
+		push   edi					;// rdi
 
 		push   restArgs
 		X64_Pop(_RDI);
@@ -76,7 +80,7 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD func, int argC, ...)
 		push   _argC
 		X64_Pop(_RAX);
 
-		;//put rest of arguments on the stack
+		;// put rest of arguments on the stack
 		test   eax, eax
 		jz     _ls_e
 		lea    edi, dword ptr [edi + 8*eax - 8]
@@ -84,25 +88,25 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD func, int argC, ...)
 		_ls:
 		test   eax, eax
 		jz     _ls_e
-		push   dword ptr [edi]
+		push   dword ptr [edi]		;// this pushes qword (in x64 mode)
 		sub    edi, 8
 		sub    eax, 1
 		jmp    _ls
 		_ls_e:
 
-		;//create stack space for spilling registers
+		;// create stack space for spilling registers
 		sub    esp, 0x20
 
-		call   _func
+		call   func
 
-		;//cleanup stack
+		;// cleanup stack
 		push   _argC
 		X64_Pop(_RCX);
 		lea    esp, dword ptr [esp + 8*ecx + 0x20]
 
-		pop    edi
+		pop    edi					;// rdi
 
-		//set return value
+		// set return value
 		X64_Push(_RAX);
 		pop    _rax.dw[0]
 
@@ -112,28 +116,77 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD func, int argC, ...)
 	}
 	return _rax.v;
 }
+#pragma warning(pop)
+
+void getMem64(void* dstMem, DWORD64 srcMem, size_t sz)
+{
+	reg64 _src;
+	_src.v = srcMem;
+	__asm
+	{
+		X64_Start();
+
+		push   edi
+		push   esi
+
+		mov    edi, dstMem
+		REX_W() 
+		mov    esi, _src.dw[0]
+		mov    ecx, sz				;// no need for REX.W, high part of RCX is zeroed anyway
+
+		mov    eax, ecx
+		and    eax, 3
+
+		shr    ecx, 2
+		rep    movsd
+
+		test   eax, eax
+		je     _move_0
+		cmp    eax, 1
+		je     _move_1
+
+		movsw
+		cmp    eax, 2
+		je     _move_0
+
+_move_1:
+		movsb
+
+_move_0:
+
+		pop    esi
+		pop    edi
+		X64_End();
+	}
+}
 
 TEB64* getTEB64()
 {
 	reg64 reg;
 	reg.v = 0;
+	
 	X64_Start();
-	//R12 register should always contain pointer to TEB64 in WoW64 processes
+	// R12 register should always contain pointer to TEB64 in WoW64 processes
 	X64_Push(_R12);
-	//below pop will pop QWORD from stack, as we're in x64 mode now
+	// below pop will pop QWORD from stack, as we're in x64 mode now
 	__asm pop reg.dw[0]
 	X64_End();
-	//upper 32 bits should be always 0 in WoW64 processes
+
+	// upper 32 bits should be always 0 in WoW64 processes
+	// TODO: check if it is true on Win8
 	if (reg.dw[1] != 0)
 		return 0;
+
 	return (TEB64*)reg.dw[0];
 }
 
-extern "C" __declspec(dllexport) DWORD GetModuleHandle64(wchar_t* lpModuleName)
+extern "C" __declspec(dllexport) DWORD64 GetModuleHandle64(wchar_t* lpModuleName)
 {
-	DWORD module = 0;
-
 	TEB64* teb64 = getTEB64();
+	if (nullptr == teb64)
+		return 0;
+
+	DWORD64 module = 0;
 	PEB64* peb64 = (PEB64*)teb64->ProcessEnvironmentBlock;
 	PEB_LDR_DATA64* ldr = (PEB_LDR_DATA64*)peb64->Ldr;
 
@@ -141,16 +194,16 @@ extern "C" __declspec(dllexport) DWORD GetModuleHandle64(wchar_t* lpModuleName)
 	do
 	{
 		if (memcmp((void*)head->BaseDllName.Buffer, lpModuleName, head->BaseDllName.Length) == 0)
-			module = (DWORD)head->DllBase;
+			module = head->DllBase;
 		head = (LDR_DATA_TABLE_ENTRY64*)head->InLoadOrderLinks.Flink;
 	}
 	while (head != (LDR_DATA_TABLE_ENTRY64*)&ldr->InLoadOrderModuleList);
 	return module;
 }
 
-DWORD getNTDLL64()
+DWORD64 getNTDLL64()
 {
-	static DWORD ntdll64 = 0;
+	static DWORD64 ntdll64 = 0;
 	if (0 != ntdll64)
 		return ntdll64;
 
@@ -158,21 +211,44 @@ DWORD getNTDLL64()
 	return ntdll64;
 }
 
-DWORD getLdrGetProcedureAddress()
+DWORD64 getLdrGetProcedureAddress()
 {
-	BYTE* modBase = (BYTE*)getNTDLL64();
-	IMAGE_NT_HEADERS64* inh = (IMAGE_NT_HEADERS64*)(modBase + ((IMAGE_DOS_HEADER*)modBase)->e_lfanew);
-	IMAGE_DATA_DIRECTORY& idd = inh->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+	DWORD64 modBase = getNTDLL64();
+	
+	IMAGE_DOS_HEADER idh;
+	getMem64(&idh, modBase, sizeof(idh));
+
+	IMAGE_NT_HEADERS64 inh;
+	getMem64(&inh, modBase + idh.e_lfanew, sizeof(IMAGE_NT_HEADERS64));
+	
+	IMAGE_DATA_DIRECTORY& idd = inh.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
+	
 	if (0 == idd.VirtualAddress)
 		return 0;
 
-	IMAGE_EXPORT_DIRECTORY* ied = (IMAGE_EXPORT_DIRECTORY*)(modBase + idd.VirtualAddress);
+	IMAGE_EXPORT_DIRECTORY ied;
+	getMem64(&ied, modBase + idd.VirtualAddress, sizeof(ied));
 
-	DWORD* rvaTable = (DWORD*)(modBase + ied->AddressOfFunctions);
-	WORD* ordTable = (WORD*)(modBase + ied->AddressOfNameOrdinals);
-	DWORD* nameTable = (DWORD*)(modBase + ied->AddressOfNames);
-	//lazy search, there is no need to use binsearch for just one function
-	for (DWORD i = 0; i < ied->NumberOfFunctions; i++)
+	DWORD* rvaTable = (DWORD*)malloc(sizeof(DWORD)*ied.NumberOfFunctions);
+	if (nullptr == rvaTable)
+		return 0;
+	WATCH(rvaTable);
+	getMem64(rvaTable, modBase + ied.AddressOfFunctions, sizeof(DWORD)*ied.NumberOfFunctions);
+	
+	WORD* ordTable = (WORD*)malloc(sizeof(WORD)*ied.NumberOfFunctions);
+	if (nullptr == ordTable)
+		return 0;
+	WATCH(ordTable);
+	getMem64(ordTable, modBase + ied.AddressOfNameOrdinals, sizeof(WORD)*ied.NumberOfFunctions);
+
+	DWORD* nameTable = (DWORD*)malloc(sizeof(DWORD)*ied.NumberOfNames);
+	if (nullptr == nameTable)
+		return 0;
+	WATCH(nameTable);
+	getMem64(nameTable, modBase + ied.AddressOfNames, sizeof(DWORD)*ied.NumberOfNames);
+
+	// lazy search, there is no need to use binsearch for just one function
+	for (DWORD i = 0; i < ied.NumberOfFunctions; i++)
 	{
 		if (strcmp((char*)modBase + nameTable[i], "LdrGetProcedureAddress"))
 			continue;
@@ -182,9 +258,9 @@ DWORD getLdrGetProcedureAddress()
 	return 0;
 }
 
-extern "C" __declspec(dllexport) DWORD GetProcAddress64(DWORD hModule, char* funcName)
+extern "C" __declspec(dllexport) DWORD64 GetProcAddress64(DWORD64 hModule, char* funcName)
 {
-	static DWORD _LdrGetProcedureAddress = 0;
+	static DWORD64 _LdrGetProcedureAddress = 0;
 	if (0 == _LdrGetProcedureAddress)
 	{
 		_LdrGetProcedureAddress = getLdrGetProcedureAddress();
@@ -203,10 +279,10 @@ extern "C" __declspec(dllexport) DWORD GetProcAddress64(DWORD hModule, char* fun
 
 extern "C" __declspec(dllexport) SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD64 lpAddress, MEMORY_BASIC_INFORMATION64* lpBuffer, SIZE_T dwLength)
 {
-	static DWORD ntqvm = 0;
+	static DWORD64 ntqvm = 0;
 	if (0 == ntqvm)
 	{
-		ntqvm = (DWORD)GetProcAddress64(getNTDLL64(), "NtQueryVirtualMemory");
+		ntqvm = GetProcAddress64(getNTDLL64(), "NtQueryVirtualMemory");
 		if (0 == ntqvm)
 			return 0;
 	}
@@ -217,10 +293,10 @@ extern "C" __declspec(dllexport) SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD6
 
 extern "C" __declspec(dllexport) DWORD64 VirtualAllocEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
 {
-	static DWORD ntavm = 0;
+	static DWORD64 ntavm = 0;
 	if (0 == ntavm)
 	{
-		ntavm = (DWORD)GetProcAddress64(getNTDLL64(), "NtAllocateVirtualMemory");
+		ntavm = GetProcAddress64(getNTDLL64(), "NtAllocateVirtualMemory");
 		if (0 == ntavm)
 			return 0;
 	}
@@ -236,10 +312,10 @@ extern "C" __declspec(dllexport) DWORD64 VirtualAllocEx64(HANDLE hProcess, DWORD
 
 __declspec(dllexport) BOOL VirtualFreeEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, DWORD dwFreeType)
 {
-	static DWORD ntfvm = 0;
+	static DWORD64 ntfvm = 0;
 	if (0 == ntfvm)
 	{
-		ntfvm = (DWORD)GetProcAddress64(getNTDLL64(), "NtFreeVirtualMemory");
+		ntfvm = GetProcAddress64(getNTDLL64(), "NtFreeVirtualMemory");
 		if (0 == ntfvm)
 			return 0;
 	}
@@ -255,10 +331,10 @@ __declspec(dllexport) BOOL VirtualFreeEx64(HANDLE hProcess, DWORD64 lpAddress, S
 
 extern "C" __declspec(dllexport) BOOL ReadProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesRead)
 {
-	static DWORD nrvm = 0;
+	static DWORD64 nrvm = 0;
 	if (0 == nrvm)
 	{
-		nrvm = (DWORD)GetProcAddress64(getNTDLL64(), "NtReadVirtualMemory");
+		nrvm = GetProcAddress64(getNTDLL64(), "NtReadVirtualMemory");
 		if (0 == nrvm)
 			return 0;
 	}
@@ -271,10 +347,10 @@ extern "C" __declspec(dllexport) BOOL ReadProcessMemory64(HANDLE hProcess, DWORD
 
 extern "C" __declspec(dllexport) BOOL WriteProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten)
 {
-	static DWORD nrvm = 0;
+	static DWORD64 nrvm = 0;
 	if (0 == nrvm)
 	{
-		nrvm = (DWORD)GetProcAddress64(getNTDLL64(), "NtWriteVirtualMemory");
+		nrvm = GetProcAddress64(getNTDLL64(), "NtWriteVirtualMemory");
 		if (0 == nrvm)
 			return 0;
 	}
@@ -287,10 +363,10 @@ extern "C" __declspec(dllexport) BOOL WriteProcessMemory64(HANDLE hProcess, DWOR
 
 extern "C" __declspec(dllexport) BOOL GetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext)
 {
-	static DWORD gtc = 0;
+	static DWORD64 gtc = 0;
 	if (0 == gtc)
 	{
-		gtc = (DWORD)GetProcAddress64(getNTDLL64(), "NtGetContextThread");
+		gtc = GetProcAddress64(getNTDLL64(), "NtGetContextThread");
 		if (0 == gtc)
 			return 0;
 	}
@@ -303,10 +379,10 @@ extern "C" __declspec(dllexport) BOOL GetThreadContext64(HANDLE hThread, _CONTEX
 
 extern "C" __declspec(dllexport) BOOL SetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext)
 {
-	static DWORD stc = 0;
+	static DWORD64 stc = 0;
 	if (0 == stc)
 	{
-		stc = (DWORD)GetProcAddress64(getNTDLL64(), "NtSetContextThread");
+		stc = GetProcAddress64(getNTDLL64(), "NtSetContextThread");
 		if (0 == stc)
 			return 0;
 	}

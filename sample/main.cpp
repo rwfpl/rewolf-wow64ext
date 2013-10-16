@@ -75,11 +75,11 @@ int main (int argc, char* argv[])
 		crAddr = crAddr + mbi64.RegionSize;
 	}
 
-	DWORD ntdll64 = GetModuleHandle64(L"ntdll.dll");
-	printf("NTDLL64: %08X\n", ntdll64);
+	DWORD64 ntdll64 = GetModuleHandle64(L"ntdll.dll");
+	printf("NTDLL64: %016I64X\n", ntdll64);
 
-	DWORD rtlcrc32 = GetProcAddress64(ntdll64, "RtlComputeCrc32");
-	printf("RtlComputeCrc32 address: %08X\n", rtlcrc32);
+	DWORD64 rtlcrc32 = GetProcAddress64(ntdll64, "RtlComputeCrc32");
+	printf("RtlComputeCrc32 address: %016I64X\n", rtlcrc32);
 
 	if (0 != rtlcrc32)
 	{
