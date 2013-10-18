@@ -64,9 +64,9 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD64 func, int argC, ...)
 
 		;// fill first four arguments
 		push   _rcx
-		X64_Pop(_RCX);
+		pop    ecx
 		push   _rdx
-		X64_Pop(_RDX);
+		pop    edx
 		push   _r8
 		X64_Pop(_R8);
 		push   _r9
@@ -75,10 +75,10 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD64 func, int argC, ...)
 		push   edi					;// rdi
 
 		push   restArgs
-		X64_Pop(_RDI);
+		pop    edi
 
 		push   _argC
-		X64_Pop(_RAX);
+		pop    eax
 
 		;// put rest of arguments on the stack
 		test   eax, eax
@@ -101,13 +101,13 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD64 func, int argC, ...)
 
 		;// cleanup stack
 		push   _argC
-		X64_Pop(_RCX);
+		pop    ecx
 		lea    esp, dword ptr [esp + 8*ecx + 0x20]
 
 		pop    edi					;// rdi
 
 		// set return value
-		X64_Push(_RAX);
+		push   eax
 		pop    _rax.dw[0]
 
 		X64_End();
@@ -120,6 +120,9 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD64 func, int argC, ...)
 
 void getMem64(void* dstMem, DWORD64 srcMem, size_t sz)
 {
+	if ((nullptr == dstMem) || (0 == srcMem) || (0 == sz))
+		return;
+
 	reg64 _src;
 	_src.v = srcMem;
 	__asm
@@ -160,7 +163,61 @@ _move_0:
 	}
 }
 
-TEB64* getTEB64()
+bool cmpMem64(void* dstMem, DWORD64 srcMem, size_t sz)
+{
+	if ((nullptr == dstMem) || (0 == srcMem) || (0 == sz))
+		return false;
+
+	bool result = false;
+	reg64 _src;
+	_src.v = srcMem;
+	__asm
+	{
+		X64_Start();
+
+		push   edi
+		push   esi
+
+		mov    edi, dstMem
+		REX_W() 
+		mov    esi, _src.dw[0]
+		mov    ecx, sz				;// no need for REX.W, high part of RCX is zeroed anyway
+
+		mov    eax, ecx
+		and    eax, 3
+
+		shr    ecx, 2
+		repe   cmpsd
+		jnz     _ret_false
+
+		test   eax, eax
+		je     _move_0
+		cmp    eax, 1
+		je     _move_1
+
+		cmpsw
+		jnz     _ret_false
+		cmp    eax, 2
+		je     _move_0
+
+_move_1:
+		cmpsb
+		jnz     _ret_false
+
+_move_0:
+
+		mov    result, 1
+_ret_false:
+
+		pop    esi
+		pop    edi
+		X64_End();
+	}
+
+	return result;
+}
+
+DWORD64 getTEB64()
 {
 	reg64 reg;
 	reg.v = 0;
@@ -172,33 +229,37 @@ TEB64* getTEB64()
 	__asm pop reg.dw[0]
 	X64_End();
 
-	// upper 32 bits should be always 0 in WoW64 processes
-	// TODO: check if it is true on Win8
-	if (reg.dw[1] != 0)
-		return 0;
-
-	return (TEB64*)reg.dw[0];
+	return reg.v;
 }
 
 extern "C" __declspec(dllexport) DWORD64 GetModuleHandle64(wchar_t* lpModuleName)
 {
-	TEB64* teb64 = getTEB64();
-	if (nullptr == teb64)
-		return 0;
+	TEB64 teb64;
+	getMem64(&teb64, getTEB64(), sizeof(TEB64));
+	
+	PEB64 peb64;
+	getMem64(&peb64, teb64.ProcessEnvironmentBlock, sizeof(PEB64));
+	PEB_LDR_DATA64 ldr;
+	getMem64(&ldr, peb64.Ldr, sizeof(PEB_LDR_DATA64));
 
-	DWORD64 module = 0;
-	PEB64* peb64 = (PEB64*)teb64->ProcessEnvironmentBlock;
-	PEB_LDR_DATA64* ldr = (PEB_LDR_DATA64*)peb64->Ldr;
-
-	LDR_DATA_TABLE_ENTRY64* head = (LDR_DATA_TABLE_ENTRY64*)ldr->InLoadOrderModuleList.Flink;
+	LDR_DATA_TABLE_ENTRY64 head;
+	head.InLoadOrderLinks.Flink = ldr.InLoadOrderModuleList.Flink;
 	do
 	{
-		if (memcmp((void*)head->BaseDllName.Buffer, lpModuleName, head->BaseDllName.Length) == 0)
-			module = head->DllBase;
-		head = (LDR_DATA_TABLE_ENTRY64*)head->InLoadOrderLinks.Flink;
+		getMem64(&head, head.InLoadOrderLinks.Flink, sizeof(LDR_DATA_TABLE_ENTRY64));
+
+		wchar_t* tempBuf = (wchar_t*)malloc(head.BaseDllName.MaximumLength);
+		if (nullptr == tempBuf)
+			return 0;
+		WATCH(tempBuf);
+		getMem64(tempBuf, head.BaseDllName.Buffer, head.BaseDllName.MaximumLength);
+
+		if (0 == _wcsicmp(lpModuleName, tempBuf))
+			return head.DllBase;
 	}
-	while (head != (LDR_DATA_TABLE_ENTRY64*)&ldr->InLoadOrderModuleList);
-	return module;
+	while (head.InLoadOrderLinks.Flink != ldr.InLoadOrderModuleList.Blink);
+
+	return 0;
 }
 
 DWORD64 getNTDLL64()
@@ -250,10 +311,10 @@ DWORD64 getLdrGetProcedureAddress()
 	// lazy search, there is no need to use binsearch for just one function
 	for (DWORD i = 0; i < ied.NumberOfFunctions; i++)
 	{
-		if (strcmp((char*)modBase + nameTable[i], "LdrGetProcedureAddress"))
+		if (!cmpMem64("LdrGetProcedureAddress", modBase + nameTable[i], sizeof("LdrGetProcedureAddress")))
 			continue;
 		else
-			return (DWORD)(modBase + rvaTable[ordTable[i]]);
+			return modBase + rvaTable[ordTable[i]];
 	}
 	return 0;
 }
