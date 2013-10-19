@@ -5,6 +5,25 @@
 
 #define FNFAIL(a) printf(a " failed\n")
 
+void AllocTest(HANDLE hProcess)
+{
+	printf("Requesting 0x1000 bytes of memory at 0x70000020000 ...\n");
+	DWORD64 mem = VirtualAllocEx64(hProcess, 0x70000020000, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (0 == mem)
+	{
+		printf("VirtualAllocEx64 failed.\n");
+		return;
+	}
+	printf("Memory allocated at: %016I64X\n", mem);
+
+	MEMORY_BASIC_INFORMATION64 mbi64 = { 0 };
+	VirtualQueryEx64(hProcess, mem, &mbi64, sizeof(mbi64));
+	printf("Query memory: %016I64X %016I64X %08X %08X %08X\n", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect, mbi64.Type, mbi64.State);
+	printf("Freeing memory: %s\n", VirtualFreeEx64(hProcess, mem, 0, MEM_RELEASE) ? "success" : "failure");
+	VirtualQueryEx64(hProcess, mem, &mbi64, sizeof(mbi64));
+	printf("Query memory: %016I64X %016I64X %08X %08X %08X\n", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect, mbi64.Type, mbi64.State);
+}
+
 int main (int argc, char* argv[])
 {
 	if (2 != argc)
@@ -87,23 +106,12 @@ int main (int argc, char* argv[])
 		printf("CRC32(\"ReWolf\") = %016I64X\n", ret);
 	}
 
-	printf("Alloc/Free test:\nRequesting 0x1000 bytes of memory at 0x70000020000 ...\n");
-	DWORD64 mem = VirtualAllocEx64(hProcess, 0x70000020000, 0x1000, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-	if (0 == mem)
-	{
-		printf("VirtualAllocEx64 failed.\n");
-		CloseHandle(hProcess);
-		return 0;
-	}
-	printf("Memory allocated at: %016I64X\n", mem);
-
-	VirtualQueryEx64(hProcess, mem, &mbi64, sizeof(mbi64));
-	printf("Query memory: %016I64X %016I64X %08X %08X %08X\n", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect, mbi64.Type, mbi64.State);
-	printf("Freeing memory: %s\n", VirtualFreeEx64(hProcess, mem, 0, MEM_RELEASE) ? "success" : "failure");
-	VirtualQueryEx64(hProcess, mem, &mbi64, sizeof(mbi64));
-	printf("Query memory: %016I64X %016I64X %08X %08X %08X\n", mbi64.BaseAddress, mbi64.RegionSize, mbi64.Protect, mbi64.Type, mbi64.State);
-
-
+	printf("Alloc/Free test:\n");
+	AllocTest(hProcess);
+	
+	printf("\nAlloc/Free over 4GB inside WoW64 test:\n");
+	AllocTest(GetCurrentProcess());
+	
 	printf("\n\nGet/Set Context test:\n");
 
 	_CONTEXT64 ctx = { 0 };

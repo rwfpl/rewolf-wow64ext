@@ -2,7 +2,7 @@
  *
  * WOW64Ext Library
  *
- * Copyright (c) 2012 ReWolf
+ * Copyright (c) 2013 ReWolf
  * http://blog.rewolf.pl/
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,26 +24,26 @@
 class CMemPtr
 {
 private:
-	void** m_ptr;
-	bool watchActive;
+    void** m_ptr;
+    bool watchActive;
 
 public:
-	CMemPtr(void** ptr) : m_ptr(ptr), watchActive(true) {}
+    CMemPtr(void** ptr) : m_ptr(ptr), watchActive(true) {}
 
-	~CMemPtr()
-	{
-		if (*m_ptr && watchActive)
-		{ 
-			free(*m_ptr); 
-			*m_ptr = 0; 
-		} 
-	}
+    ~CMemPtr()
+    {
+        if (*m_ptr && watchActive)
+        { 
+            free(*m_ptr); 
+            *m_ptr = 0; 
+        } 
+    }
 
-	void disableWatch() { watchActive = false; }
+    void disableWatch() { watchActive = false; }
 };
 
 #define WATCH(ptr) \
-	CMemPtr watch_##ptr((void**)&ptr)
+    CMemPtr watch_##ptr((void**)&ptr)
 
 #define DISABLE_WATCH(ptr) \
-	watch_##ptr.disableWatch()
+    watch_##ptr.disableWatch()

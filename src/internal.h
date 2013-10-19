@@ -2,7 +2,7 @@
  *
  * WOW64Ext Library
  *
- * Copyright (c) 2012 ReWolf
+ * Copyright (c) 2013 ReWolf
  * http://blog.rewolf.pl/
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,20 +24,20 @@
 #define EMIT(a) __asm __emit (a)
 
 #define X64_Start_with_CS(_cs) \
-	{ \
-	EMIT(0x6A) EMIT(_cs)                         /*  push   _cs             */ \
-	EMIT(0xE8) EMIT(0) EMIT(0) EMIT(0) EMIT(0)   /*  call   $+5             */ \
-	EMIT(0x83) EMIT(4) EMIT(0x24) EMIT(5)        /*  add    dword [esp], 5  */ \
-	EMIT(0xCB)                                   /*  retf                   */ \
-	}
+    { \
+    EMIT(0x6A) EMIT(_cs)                         /*  push   _cs             */ \
+    EMIT(0xE8) EMIT(0) EMIT(0) EMIT(0) EMIT(0)   /*  call   $+5             */ \
+    EMIT(0x83) EMIT(4) EMIT(0x24) EMIT(5)        /*  add    dword [esp], 5  */ \
+    EMIT(0xCB)                                   /*  retf                   */ \
+    }
 
 #define X64_End_with_CS(_cs) \
-	{ \
-	EMIT(0xE8) EMIT(0) EMIT(0) EMIT(0) EMIT(0)                                 /*  call   $+5                   */ \
-	EMIT(0xC7) EMIT(0x44) EMIT(0x24) EMIT(4) EMIT(_cs) EMIT(0) EMIT(0) EMIT(0) /*  mov    dword [rsp + 4], _cs  */ \
-	EMIT(0x83) EMIT(4) EMIT(0x24) EMIT(0xD)                                    /*  add    dword [rsp], 0xD      */ \
-	EMIT(0xCB)                                                                 /*  retf                         */ \
-	}
+    { \
+    EMIT(0xE8) EMIT(0) EMIT(0) EMIT(0) EMIT(0)                                 /*  call   $+5                   */ \
+    EMIT(0xC7) EMIT(0x44) EMIT(0x24) EMIT(4) EMIT(_cs) EMIT(0) EMIT(0) EMIT(0) /*  mov    dword [rsp + 4], _cs  */ \
+    EMIT(0x83) EMIT(4) EMIT(0x24) EMIT(0xD)                                    /*  add    dword [rsp], 0xD      */ \
+    EMIT(0xCB)                                                                 /*  retf                         */ \
+    }
 
 #define X64_Start() X64_Start_with_CS(0x33)
 #define X64_End() X64_End_with_CS(0x23)
@@ -68,6 +68,6 @@
 //use of DWORD64 will generate wrong 'pop word ptr[]' and it will break stack
 union reg64
 {
-	DWORD dw[2];
-	DWORD64 v;
+    DWORD64 v;
+    DWORD dw[2];
 };
