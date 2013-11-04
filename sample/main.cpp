@@ -26,6 +26,9 @@ void AllocTest(HANDLE hProcess)
 
 int main (int argc, char* argv[])
 {
+	DWORD64 s = GetProcAddress64(GetModuleHandle64(L"wow64cpu.dll"),"TurboDispatchJumpAddressStart");
+	printf("tt: %016I64X\n", s);
+
 	if (2 != argc)
 	{
 		printf("Usage:\n\t%s hex_process_ID\n", argv[0]);

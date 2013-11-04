@@ -21,6 +21,7 @@
  */
 
 #include <Windows.h>
+#include <cstddef>
 #include "internal.h"
 #include "wow64ext.h"
 #include "CMemPtr.h"
@@ -250,6 +251,7 @@ extern "C" __declspec(dllexport) DWORD64 GetModuleHandle64(wchar_t* lpModuleName
     PEB_LDR_DATA64 ldr;
     getMem64(&ldr, peb64.Ldr, sizeof(PEB_LDR_DATA64));
 
+    DWORD64 LastEntry = peb64.Ldr + offsetof(PEB_LDR_DATA64, InLoadOrderModuleList);
     LDR_DATA_TABLE_ENTRY64 head;
     head.InLoadOrderLinks.Flink = ldr.InLoadOrderModuleList.Flink;
     do
@@ -265,7 +267,7 @@ extern "C" __declspec(dllexport) DWORD64 GetModuleHandle64(wchar_t* lpModuleName
         if (0 == _wcsicmp(lpModuleName, tempBuf))
             return head.DllBase;
     }
-    while (head.InLoadOrderLinks.Flink != ldr.InLoadOrderModuleList.Blink);
+    while (head.InLoadOrderLinks.Flink != LastEntry);
 
     return 0;
 }
