@@ -78,7 +78,7 @@ int main (int argc, char* argv[])
 			}
 
  			wchar_t fName[0x200];
- 			swprintf_s(fName, L"%08X_%016I64X.bin", procID, mbi64.BaseAddress);
+ 			swprintf_s(fName, L"%08X_%016I64X_%08X.bin", procID, mbi64.BaseAddress, mbi64.Protect);
  			HANDLE hFile = CreateFile(fName, GENERIC_WRITE, FILE_SHARE_READ, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
  			DWORD tmp = 0;
  			WriteFile(hFile, mem, (DWORD)mbi64.RegionSize, &tmp, 0);
