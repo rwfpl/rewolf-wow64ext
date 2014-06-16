@@ -102,6 +102,23 @@ dwFreeType - type of free operation (MEM_RELEASE, MEM_DECOMMIT)
 
 --------------------------------------------------------------------------------
 
+BOOL VirtualProtectEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, 
+                        DWORD flNewProtect, DWORD* lpflOldProtect);
+                        
+Behaviour  similar to  x86 version of  VirtualProtectEx64(), internally  it uses
+x64 version of NtProtectVirtualMemory() from NTDLL.                     
+
+hProcess       - handle  of  the  process,  can  be  obtained  by  standard  x86
+                 version of OpenProcess() function
+lpAddress      - base  address  of  the  memory region  that  will  have changed
+                 protection
+dwSize         - size (in  bytes) of  the memory  region that  will have changed
+                 protection
+flNewProtect   - the memory protection option (see MSDN)
+lpflOldProtect - pointer to the variable that receives old protection value
+
+--------------------------------------------------------------------------------
+
 BOOL ReadProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, 
                          LPVOID lpBuffer, SIZE_T nSize, 
                          SIZE_T *lpNumberOfBytesRead);

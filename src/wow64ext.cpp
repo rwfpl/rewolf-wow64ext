@@ -400,6 +400,25 @@ __declspec(dllexport) BOOL VirtualFreeEx64(HANDLE hProcess, DWORD64 lpAddress, S
         return TRUE;
 }
 
+extern "C" __declspec(dllexport) BOOL VirtualProtectEx64(HANDLE hProcess, DWORD64 lpAddress, SIZE_T dwSize, DWORD flNewProtect, DWORD* lpflOldProtect)
+{
+    static DWORD64 ntpvm = 0;
+    if (0 == ntpvm)
+    {
+        ntpvm = GetProcAddress64(getNTDLL64(), "NtProtectVirtualMemory");
+        if (0 == ntpvm)
+            return 0;
+    }
+
+    DWORD64 tmpAddr = lpAddress;
+    DWORD64 tmpSize = dwSize;
+    DWORD64 ret = X64Call(ntpvm, 5, (DWORD64)hProcess, (DWORD64)&tmpAddr, (DWORD64)&tmpSize, (DWORD64)flNewProtect, (DWORD64)lpflOldProtect);
+    if (STATUS_SUCCESS != ret)
+        return FALSE;
+    else
+        return TRUE;
+}
+
 extern "C" __declspec(dllexport) BOOL ReadProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesRead)
 {
     static DWORD64 nrvm = 0;
