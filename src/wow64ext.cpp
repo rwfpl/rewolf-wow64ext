@@ -409,11 +409,16 @@ extern "C" __declspec(dllexport) BOOL ReadProcessMemory64(HANDLE hProcess, DWORD
         if (0 == nrvm)
             return 0;
     }
-    DWORD64 ret = X64Call(nrvm, 5, (DWORD64)hProcess, lpBaseAddress, (DWORD64)lpBuffer, (DWORD64)nSize, (DWORD64)lpNumberOfBytesRead);
+    DWORD64 numOfBytes = lpNumberOfBytesRead ? *lpNumberOfBytesRead : 0;
+    DWORD64 ret = X64Call(nrvm, 5, (DWORD64)hProcess, lpBaseAddress, (DWORD64)lpBuffer, (DWORD64)nSize, (DWORD64)&numOfBytes);
     if (STATUS_SUCCESS != ret)
         return FALSE;
     else
+    {
+        if (lpNumberOfBytesRead)
+            *lpNumberOfBytesRead = (SIZE_T)numOfBytes;
         return TRUE;
+    }
 }
 
 extern "C" __declspec(dllexport) BOOL WriteProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten)
@@ -425,11 +430,16 @@ extern "C" __declspec(dllexport) BOOL WriteProcessMemory64(HANDLE hProcess, DWOR
         if (0 == nrvm)
             return 0;
     }
-    DWORD64 ret = X64Call(nrvm, 5, (DWORD64)hProcess, lpBaseAddress, (DWORD64)lpBuffer, (DWORD64)nSize, (DWORD64)lpNumberOfBytesWritten);
+    DWORD64 numOfBytes = lpNumberOfBytesWritten ? *lpNumberOfBytesWritten : 0;
+    DWORD64 ret = X64Call(nrvm, 5, (DWORD64)hProcess, lpBaseAddress, (DWORD64)lpBuffer, (DWORD64)nSize, (DWORD64)&numOfBytes);
     if (STATUS_SUCCESS != ret)
         return FALSE;
     else
+    {
+        if (lpNumberOfBytesWritten)
+            *lpNumberOfBytesWritten = (SIZE_T)numOfBytes;
         return TRUE;
+    }
 }
 
 extern "C" __declspec(dllexport) BOOL GetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext)
