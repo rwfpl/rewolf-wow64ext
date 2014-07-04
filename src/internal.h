@@ -2,7 +2,7 @@
  *
  * WOW64Ext Library
  *
- * Copyright (c) 2013 ReWolf
+ * Copyright (c) 2014 ReWolf
  * http://blog.rewolf.pl/
  *
  * This program is free software: you can redistribute it and/or modify
