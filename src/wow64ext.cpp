@@ -54,8 +54,11 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD64 func, int argC, ...)
         ;// keep original esp in back_esp variable
         mov    back_esp, esp
         
-        ;// align esp to 8, without aligned stack some syscalls may return errors !
-        and    esp, 0xFFFFFFF8
+        ;// align esp to 0x10, without aligned stack some syscalls may return errors !
+        ;// (actually, for syscalls it is sufficient to align to 8, but SSE opcodes 
+        ;// requires 0x10 alignment), it will be further adjusted according to the
+        ;// number of arguments above 4
+        and    esp, 0xFFFFFFF0
 
         X64_Start();
 
@@ -64,53 +67,52 @@ extern "C" __declspec(dllexport) DWORD64 X64Call(DWORD64 func, int argC, ...)
         ;// transcription how it will be interpreted by CPU
 
         ;// fill first four arguments
-        REX_W();                                        ;// 
-        mov    ecx, _rcx.dw[0]                          ;// mov     rcx, qword ptr [_rcx]
-        REX_W();                                        ;// 
-        mov    edx, _rdx.dw[0]                          ;// mov     rdx, qword ptr [_rdx]
+  REX_W mov    ecx, _rcx.dw[0]                          ;// mov     rcx, qword ptr [_rcx]
+  REX_W mov    edx, _rdx.dw[0]                          ;// mov     rdx, qword ptr [_rdx]
         push   _r8.v                                    ;// push    qword ptr [_r8]
         X64_Pop(_R8);                                   ;// pop     r8
         push   _r9.v                                    ;// push    qword ptr [_r9]
         X64_Pop(_R9);                                   ;// pop     r9
+                                                        ;//
+  REX_W mov    eax, _argC.dw[0]                         ;// mov     rax, qword ptr [_argC]
+                                                        ;// 
+        ;// final stack adjustment, according to the    ;//
+        ;// number of arguments above 4                 ;// 
+        test   al, 1                                    ;// test    al, 1
+        jnz    _no_adjust                               ;// jnz     _no_adjust
+        sub    esp, 8                                   ;// sub     rsp, 8
+_no_adjust:                                             ;//
                                                         ;// 
         push   edi                                      ;// push    rdi
-                                                        ;// 
-        REX_W();                                        ;// 
-        mov    edi, restArgs.dw[0]                      ;// mov     rdi, qword ptr [restArgs]
-        REX_W();                                        ;// 
-        mov    eax, _argC.dw[0]                         ;// mov     rax, qword ptr [_argC]
+  REX_W mov    edi, restArgs.dw[0]                      ;// mov     rdi, qword ptr [restArgs]
                                                         ;// 
         ;// put rest of arguments on the stack          ;// 
-        test   eax, eax                                 ;// test    eax, eax
+  REX_W test   eax, eax                                 ;// test    rax, rax
         jz     _ls_e                                    ;// je      _ls_e
-        lea    edi, dword ptr [edi + 8*eax - 8]         ;// lea     edi, [rdi + rax*8 - 8]
+  REX_W lea    edi, dword ptr [edi + 8*eax - 8]         ;// lea     rdi, [rdi + rax*8 - 8]
                                                         ;// 
-        _ls:                                            ;// 
-        test   eax, eax                                 ;// test    eax, eax
+_ls:                                                    ;// 
+  REX_W test   eax, eax                                 ;// test    rax, rax
         jz     _ls_e                                    ;// je      _ls_e
         push   dword ptr [edi]                          ;// push    qword ptr [rdi]
-        sub    edi, 8                                   ;// sub     edi, 8
-        sub    eax, 1                                   ;// sub     eax, 1
+  REX_W sub    edi, 8                                   ;// sub     rdi, 8
+  REX_W sub    eax, 1                                   ;// sub     rax, 1
         jmp    _ls                                      ;// jmp     _ls
-        _ls_e:                                          ;// 
+_ls_e:                                                  ;// 
                                                         ;// 
         ;// create stack space for spilling registers   ;// 
-        REX_W();                                        ;// 
-        sub    esp, 0x20                                ;// sub     rsp, 20h
+  REX_W sub    esp, 0x20                                ;// sub     rsp, 20h
                                                         ;// 
         call   func                                     ;// call    qword ptr [func]
                                                         ;// 
         ;// cleanup stack                               ;// 
-        REX_W();                                        ;// 
-        mov    ecx, _argC.dw[0]                         ;// mov     rcx, qword ptr [_argC]
-        REX_W();                                        ;// 
-        lea    esp, dword ptr [esp + 8*ecx + 0x20]      ;// lea     rsp, [rsp + rcx*8 + 20h]
+  REX_W mov    ecx, _argC.dw[0]                         ;// mov     rcx, qword ptr [_argC]
+  REX_W lea    esp, dword ptr [esp + 8*ecx + 0x20]      ;// lea     rsp, [rsp + rcx*8 + 20h]
                                                         ;// 
         pop    edi                                      ;// pop     rdi
                                                         ;// 
         // set return value                             ;// 
-        REX_W();                                        ;// 
-        mov    _rax.dw[0], eax                          ;// mov     qword ptr [_rax], rax
+  REX_W mov    _rax.dw[0], eax                          ;// mov     qword ptr [_rax], rax
 
         X64_End();
 
@@ -139,8 +141,7 @@ void getMem64(void* dstMem, DWORD64 srcMem, size_t sz)
         push   esi                  ;// push     rsi
                                     ;//
         mov    edi, dstMem          ;// mov      edi, dword ptr [dstMem]        ; high part of RDI is zeroed
-        REX_W()                     ;//
-        mov    esi, _src.dw[0]      ;// mov      rsi, qword ptr [_src]
+  REX_W mov    esi, _src.dw[0]      ;// mov      rsi, qword ptr [_src]
         mov    ecx, sz              ;// mov      ecx, dword ptr [sz]            ; high part of RCX is zeroed
                                     ;//
         mov    eax, ecx             ;// mov      eax, ecx
@@ -188,8 +189,7 @@ bool cmpMem64(void* dstMem, DWORD64 srcMem, size_t sz)
         push   esi                  ;// push      rsi
                                     ;//           
         mov    edi, dstMem          ;// mov       edi, dword ptr [dstMem]       ; high part of RDI is zeroed
-        REX_W()                     ;//           
-        mov    esi, _src.dw[0]      ;// mov       rsi, qword ptr [_src]
+  REX_W mov    esi, _src.dw[0]      ;// mov       rsi, qword ptr [_src]
         mov    ecx, sz              ;// mov       ecx, dword ptr [sz]           ; high part of RCX is zeroed
                                     ;//           
         mov    eax, ecx             ;// mov       eax, ecx
