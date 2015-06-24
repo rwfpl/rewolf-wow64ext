@@ -329,6 +329,27 @@ DWORD64 getLdrGetProcedureAddress()
     return 0;
 }
 
+extern "C" __declspec(dllexport) VOID SetLastErrorFromX64Call(DWORD64 status)
+{
+	typedef ULONG (WINAPI *RtlNtStatusToDosError_t)(NTSTATUS Status);
+	typedef ULONG (WINAPI *RtlSetLastWin32Error_t)(NTSTATUS Status);
+
+	static RtlNtStatusToDosError_t RtlNtStatusToDosError = nullptr;
+	static RtlSetLastWin32Error_t RtlSetLastWin32Error = nullptr;
+
+	if ((nullptr == RtlNtStatusToDosError) || (nullptr == RtlSetLastWin32Error))
+	{
+		HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+		RtlNtStatusToDosError = (RtlNtStatusToDosError_t)GetProcAddress(ntdll, "RtlNtStatusToDosError");
+		RtlSetLastWin32Error = (RtlSetLastWin32Error_t)GetProcAddress(ntdll, "RtlSetLastWin32Error");
+	}
+	
+	if ((nullptr != RtlNtStatusToDosError) && (nullptr != RtlSetLastWin32Error))
+	{
+		RtlSetLastWin32Error(RtlNtStatusToDosError((DWORD)status));
+	}
+}
+
 extern "C" __declspec(dllexport) DWORD64 GetProcAddress64(DWORD64 hModule, char* funcName)
 {
     static DWORD64 _LdrGetProcedureAddress = 0;
@@ -345,7 +366,7 @@ extern "C" __declspec(dllexport) DWORD64 GetProcAddress64(DWORD64 hModule, char*
     fName.MaximumLength = fName.Length + 1;
     DWORD64 funcRet = 0;
     X64Call(_LdrGetProcedureAddress, 4, (DWORD64)hModule, (DWORD64)&fName, (DWORD64)0, (DWORD64)&funcRet);
-	return funcRet;
+    return funcRet;
 }
 
 extern "C" __declspec(dllexport) SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD64 lpAddress, MEMORY_BASIC_INFORMATION64* lpBuffer, SIZE_T dwLength)
@@ -358,8 +379,7 @@ extern "C" __declspec(dllexport) SIZE_T VirtualQueryEx64(HANDLE hProcess, DWORD6
             return 0;
     }
     DWORD64 ret = 0;
-	DWORD64 status;
-    status = X64Call(ntqvm, 6, (DWORD64)hProcess, lpAddress, (DWORD64)0, (DWORD64)lpBuffer, (DWORD64)dwLength, (DWORD64)&ret);
+    DWORD64 status = X64Call(ntqvm, 6, (DWORD64)hProcess, lpAddress, (DWORD64)0, (DWORD64)lpBuffer, (DWORD64)dwLength, (DWORD64)&ret);
 	if (STATUS_SUCCESS != status)
 		SetLastErrorFromX64Call(status);
 	return (SIZE_T)ret;
@@ -429,24 +449,6 @@ extern "C" __declspec(dllexport) BOOL VirtualProtectEx64(HANDLE hProcess, DWORD6
 	}
     else
         return TRUE;
-}
-
-extern "C" __declspec(dllexport) VOID SetLastErrorFromX64Call(DWORD64 status)
-{
-	static RtlNtStatusToDosError_t RtlNtStatusToDosError = NULL;
-	static RtlSetLastWin32Error_t RtlSetLastWin32Error = NULL;
-
-	if (RtlNtStatusToDosError == NULL || RtlSetLastWin32Error == NULL)
-	{
-		HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-		RtlNtStatusToDosError = (RtlNtStatusToDosError_t)GetProcAddress(ntdll, "RtlNtStatusToDosError");
-		RtlSetLastWin32Error = (RtlSetLastWin32Error_t)GetProcAddress(ntdll, "RtlSetLastWin32Error");
-	}
-	
-	if (RtlNtStatusToDosError != NULL && RtlSetLastWin32Error != NULL)
-	{
-		RtlSetLastWin32Error(RtlNtStatusToDosError((DWORD)status));
-	}
 }
 
 extern "C" __declspec(dllexport) BOOL ReadProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesRead)
