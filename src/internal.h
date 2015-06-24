@@ -71,6 +71,3 @@ union reg64
     DWORD64 v;
     DWORD dw[2];
 };
-
-typedef ULONG(WINAPI*RtlNtStatusToDosError_t)(_In_ NTSTATUS Status);
-typedef ULONG(WINAPI*RtlSetLastWin32Error_t)(_In_ NTSTATUS Status);
