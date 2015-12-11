@@ -26,8 +26,45 @@
 #include "wow64ext.h"
 #include "CMemPtr.h"
 
+HANDLE g_heap;
+
+void* malloc(size_t size)
+{
+	return HeapAlloc(g_heap, 0, size);
+}
+
+void free(void* ptr)
+{
+	if (nullptr != ptr)
+		HeapFree(g_heap, 0, ptr);
+}
+
+int _wcsicmp(const wchar_t *string1, const wchar_t *string2)
+{
+	wchar_t c1;
+	wchar_t c2;
+	int i = 0;
+	do
+	{
+		c1 = string1[i];
+		if (c1 >= 'A' && c1 <= 'Z')
+			c1 += 0x20;
+
+		c2 = string2[i];
+		if (c2 >= 'A' && c2 <= 'Z')
+			c2 += 0x20;
+
+		i++;
+	} while (c1 && c1 == c2);
+	return c1 - c2;
+}
+
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
+	if (DLL_PROCESS_ATTACH == fdwReason)
+	{
+		g_heap = GetProcessHeap();
+	}
     return TRUE;
 }
 
@@ -285,6 +322,8 @@ DWORD64 getNTDLL64()
 DWORD64 getLdrGetProcedureAddress()
 {
     DWORD64 modBase = getNTDLL64();
+	if (0 == modBase)
+		return 0;
     
     IMAGE_DOS_HEADER idh;
     getMem64(&idh, modBase, sizeof(idh));
