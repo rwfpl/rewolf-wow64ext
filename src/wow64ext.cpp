@@ -27,6 +27,7 @@
 #include "CMemPtr.h"
 
 HANDLE g_heap;
+BOOL g_isWow64;
 
 void* malloc(size_t size)
 {
@@ -63,6 +64,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	if (DLL_PROCESS_ATTACH == fdwReason)
 	{
+		IsWow64Process(GetCurrentProcess(), &g_isWow64);
 		g_heap = GetProcessHeap();
 	}
     return TRUE;
@@ -72,6 +74,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 #pragma warning(disable : 4409)
 extern "C" __declspec(dllexport) DWORD64 __cdecl X64Call(DWORD64 func, int argC, ...)
 {
+	if (!g_isWow64)
+		return 0;
+
     va_list args;
     va_start(args, argC);
     reg64 _rcx = { (argC > 0) ? argC--, va_arg(args, DWORD64) : 0 };
@@ -280,6 +285,9 @@ DWORD64 getTEB64()
 
 extern "C" __declspec(dllexport) DWORD64 __cdecl GetModuleHandle64(wchar_t* lpModuleName)
 {
+	if (!g_isWow64)
+		return 0;
+
     TEB64 teb64;
     getMem64(&teb64, getTEB64(), sizeof(TEB64));
     
