@@ -21,7 +21,6 @@
  */
 
 #include <Windows.h>
-#include <cstddef>
 #include "internal.h"
 #include "wow64ext.h"
 #include "CMemPtr.h"
@@ -158,6 +157,8 @@ _ls_e:                                                  ;//
 
         X64_End();
 
+		mov    ax, ds
+		mov    ss, ax
         mov    esp, back_esp
     }
     return _rax.v;
