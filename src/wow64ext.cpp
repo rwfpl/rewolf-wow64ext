@@ -46,7 +46,7 @@ extern "C" __declspec(dllexport) DWORD64 __cdecl X64Call(DWORD64 func, int argC,
     reg64 restArgs = { (DWORD64)&va_arg(args, DWORD64) };
     
     // conversion to QWORD for easier use in inline assembly
-    reg64 _argC = { argC };
+    reg64 _argC = { (DWORD64)argC };
     DWORD back_esp = 0;
 
     __asm
@@ -362,7 +362,7 @@ extern "C" __declspec(dllexport) DWORD64 __cdecl GetProcAddress64(DWORD64 hModul
 
     _UNICODE_STRING_T<DWORD64> fName = { 0 };
     fName.Buffer = (DWORD64)funcName;
-    fName.Length = strlen(funcName);
+    fName.Length = (WORD)strlen(funcName);
     fName.MaximumLength = fName.Length + 1;
     DWORD64 funcRet = 0;
     X64Call(_LdrGetProcedureAddress, 4, (DWORD64)hModule, (DWORD64)&fName, (DWORD64)0, (DWORD64)&funcRet);
