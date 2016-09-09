@@ -593,3 +593,33 @@ WOW_EXPORT BOOL __cdecl SetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext
     else
         return TRUE;
 }
+
+typedef struct _UNICODE_STRING {
+	USHORT Length;
+	USHORT MaximumLength;
+	DWORD64  Buffer;
+} UNICODE_STRING, *PUNICODE_STRING;
+
+WOW_EXPORT DWORD64 __cdecl LoadLibraryW64(LPCWSTR lpLibFileName)
+{
+	static DWORD64 ldrLoadDll = 0;
+	if (0 == ldrLoadDll)
+	{
+		ldrLoadDll = GetProcAddress64(getNTDLL64(), "LdrLoadDll");
+		if (0 == ldrLoadDll)
+			return 0;
+	}
+	UNICODE_STRING szDll = { 0 };
+	szDll.Buffer = (DWORD64)lpLibFileName;
+	szDll.Length = wcslen(lpLibFileName)*sizeof(WCHAR);
+	szDll.MaximumLength = szDll.Length;
+	DWORD64 hModuleHandle = 0;
+	DWORD64 ret = X64Call(ldrLoadDll, 4, (DWORD64)0, (DWORD64)0, (DWORD64)&szDll, (DWORD64)&hModuleHandle);
+	if (S_OK == ret) 
+		return hModuleHandle;
+	else
+	{
+		SetLastErrorFromX64Call(ret);
+		return 0;
+	}
+}
