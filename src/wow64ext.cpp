@@ -21,6 +21,7 @@
  */
 
 #include <Windows.h>
+#include <cstddef>
 #include "internal.h"
 #include "wow64ext.h"
 #include "CMemPtr.h"
@@ -89,9 +90,15 @@ extern "C" __declspec(dllexport) DWORD64 __cdecl X64Call(DWORD64 func, int argC,
     // conversion to QWORD for easier use in inline assembly
     reg64 _argC = { (DWORD64)argC };
     DWORD back_esp = 0;
+	WORD back_fs = 0;
 
     __asm
     {
+        ;// reset FS segment, to properly handle RFG
+        mov    back_fs, fs
+        mov    eax, 0x2B
+        mov    fs, ax
+
         ;// keep original esp in back_esp variable
         mov    back_esp, esp
         
@@ -157,9 +164,13 @@ _ls_e:                                                  ;//
 
         X64_End();
 
-		mov    ax, ds
-		mov    ss, ax
+        mov    ax, ds
+        mov    ss, ax
         mov    esp, back_esp
+
+        ;// restore FS segment
+        mov    ax, back_fs
+        mov    fs, ax
     }
     return _rax.v;
 }

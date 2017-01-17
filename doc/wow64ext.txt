@@ -2,8 +2,8 @@
 Name....: WOW64Ext Library
 Author..: ReWolf
 Rel.Date: 12.I.2012
-Update..: 11.XII.2015
-Version.: 1.0.0.8
+Update..: 18.I.2017
+Version.: 1.0.0.9
 
 
 e.mail..: rewolf@rewolf.pl
