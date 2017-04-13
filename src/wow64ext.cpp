@@ -595,3 +595,81 @@ extern "C" __declspec(dllexport) BOOL __cdecl SetThreadContext64(HANDLE hThread,
     else
         return TRUE;
 }
+
+typedef struct 
+{
+    UINT64 UniqueProcess;
+    UINT64 UniqueThread;
+} CLIENT_ID;
+
+/*
+NTSTATUS WINAPI RtlCreateUserThread(
+    HANDLE hProcess,
+    SECURITY_DESCRIPTOR* pSec,
+    BOOLEAN fCreateSuspended,
+    SIZE_T StackZeroBits,
+    SIZE_T* StackReserved,
+    SIZE_T* StackCommit,
+    void*,
+    void*,
+    HANDLE* pThreadHandle,
+    CLIENT_ID* pResult);
+*/
+
+extern "C" __declspec(dllexport) DWORD64 __cdecl MyCreateRemoteThread64(DWORD64 hProcess, DWORD64 remote_addr, DWORD64 thread_arg)
+{
+    static DWORD64 nrvm = 0;
+    CLIENT_ID cid = { 0 };
+    DWORD64 thread_handle = 0;
+    if (0 == nrvm)
+    {
+        nrvm = GetProcAddress64(getNTDLL64(), "RtlCreateUserThread");
+        if (0 == nrvm)
+            return 0;
+    }
+
+    DWORD64 ret = X64Call(nrvm, 10, 
+        hProcess,
+        (DWORD64) NULL,
+        (DWORD64) FALSE,
+        (DWORD64) 0,
+        (DWORD64) 0,
+        (DWORD64) 0,
+        remote_addr,
+        thread_arg,
+        (DWORD64)&thread_handle,
+        (DWORD64)&cid
+    );
+    if (STATUS_SUCCESS != ret)
+    {
+        SetLastErrorFromX64Call(ret);
+        return 0;
+    }
+    else
+    {
+        return thread_handle;
+    }
+}
+
+extern "C" __declspec(dllexport) BOOL __cdecl CloseHandle64(DWORD64 Handle)
+{
+    static DWORD64 nrvm = 0;
+
+    if (0 == nrvm)
+    {
+        nrvm = GetProcAddress64(getNTDLL64(), "NtClose");
+        if (0 == nrvm)
+            return 0;
+    }
+
+    DWORD64 ret = X64Call(nrvm, 1, Handle);
+    if (STATUS_SUCCESS != ret)
+    {
+        SetLastErrorFromX64Call(ret);
+        return FALSE;
+    }
+    else
+    {
+        return TRUE;
+    }
+}
