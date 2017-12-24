@@ -370,5 +370,6 @@ extern "C"
 	__declspec(SPEC)BOOL __cdecl WriteProcessMemory64(HANDLE hProcess, DWORD64 lpBaseAddress, LPVOID lpBuffer, SIZE_T nSize, SIZE_T *lpNumberOfBytesWritten);
 	__declspec(SPEC)BOOL __cdecl GetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext);
 	__declspec(SPEC)BOOL __cdecl SetThreadContext64(HANDLE hThread, _CONTEXT64* lpContext);
+    __declspec(SPEC)HANDLE __cdecl LoadLibrary64(const wchar_t * filePath);
 	__declspec(SPEC)VOID __cdecl SetLastErrorFromX64Call(DWORD64 status);
 }

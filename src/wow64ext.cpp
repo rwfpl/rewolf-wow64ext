@@ -428,6 +428,27 @@ extern "C" __declspec(dllexport) DWORD64 __cdecl GetProcAddress64(DWORD64 hModul
     return funcRet;
 }
 
+extern "C" HANDLE __cdecl LoadLibrary64(const wchar_t * filePath)
+{
+    static DWORD64 _LdrLoadDll = 0;
+    if (0 == _LdrLoadDll)
+    {
+        _LdrLoadDll = GetProcAddress64(getNTDLL64(), "LdrLoadDll");
+        if (0 == _LdrLoadDll)
+            return 0;
+    }
+
+    HANDLE module = nullptr;
+    _UNICODE_STRING_T<DWORD64> path = { 0 };
+    path.Buffer = (DWORD64)filePath;
+    path.Length = (WORD)wcslen(filePath) * 2;
+    path.MaximumLength = path.Length + 2;
+    DWORD64 status = X64Call(_LdrLoadDll, 4, (DWORD64)0, (DWORD64)0, (DWORD64)&path, (DWORD64)&module);
+    if (STATUS_SUCCESS != status)
+        SetLastErrorFromX64Call(status);
+    return module;
+}
+
 extern "C" __declspec(dllexport) SIZE_T __cdecl VirtualQueryEx64(HANDLE hProcess, DWORD64 lpAddress, MEMORY_BASIC_INFORMATION64* lpBuffer, SIZE_T dwLength)
 {
     static DWORD64 ntqvm = 0;
