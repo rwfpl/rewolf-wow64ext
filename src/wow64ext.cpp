@@ -623,10 +623,10 @@ WOW_EXPORT DWORD64 __cdecl LoadLibraryW64(LPCWSTR lpLibFileName)
 	UNICODE_STRING szDll = { 0 };
 	szDll.Buffer = (DWORD64)lpLibFileName;
 	szDll.Length = wcslen(lpLibFileName)*sizeof(WCHAR);
-	szDll.MaximumLength = szDll.Length;
+	szDll.MaximumLength = szDll.Length + sizeof(WCHAR);
 	DWORD64 hModuleHandle = 0;
 	DWORD64 ret = X64Call(ldrLoadDll, 4, (DWORD64)0, (DWORD64)0, (DWORD64)&szDll, (DWORD64)&hModuleHandle);
-	if (S_OK == ret) 
+	if (STATUS_SUCCESS == ret) 
 		return hModuleHandle;
 	else
 	{
