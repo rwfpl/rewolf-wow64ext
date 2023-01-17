@@ -280,19 +280,31 @@ _ret_false:                         ;//
     return result;
 }
 
+#pragma optimize( "", off )
+__forceinline DWORD64 readGsQword64(DWORD64 off)
+{
+    __asm
+    {
+        X64_Start( );
+
+        push off
+        pop  edx
+	
+        EMIT( 0x65 ) EMIT( 0x48 ) EMIT( 0x8B ) EMIT( 0x02 ) // mov rax, qword ptr gs:[rdx]
+		
+	//Store the high part of the read 64-bit value in edx and leave the low part in eax
+        //to adhere to the x86 compiler's way of storing and reading QWORD values 
+        EMIT( 0x48 ) EMIT( 0x89 ) EMIT( 0xC2 )              // mov rdx, rax
+        EMIT( 0x48 ) EMIT( 0xC1 ) EMIT( 0xEA ) EMIT( 0x20 ) // shr rdx, 0x20
+
+        X64_End( );
+    }
+}
+#pragma optimize( "", on )
+
 DWORD64 getTEB64()
 {
-    reg64 reg;
-    reg.v = 0;
-    
-    X64_Start();
-    // R12 register should always contain pointer to TEB64 in WoW64 processes
-    X64_Push(_R12);
-    // below pop will pop QWORD from stack, as we're in x64 mode now
-    __asm pop reg.dw[0]
-    X64_End();
-
-    return reg.v;
+    readGsQword64( 0x30 );
 }
 
 extern "C" __declspec(dllexport) DWORD64 __cdecl GetModuleHandle64(const wchar_t* lpModuleName)
